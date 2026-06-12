@@ -11,7 +11,6 @@ from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
-    DOMAIN,
     RECORDING_TYPE_ACTION,
     RECORDING_TYPE_CONTINUOUS,
     RECORDING_TYPE_MOTION,
@@ -52,10 +51,10 @@ async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
     """SecuritySpy Switch Platform."""
-    entry_data = hass.data[DOMAIN][entry.entry_id]
-    secspy_object = entry_data["nvr"]
-    secspy_data = entry_data["secspy_data"]
-    server_info = entry_data["server_info"]
+    runtime_data = entry.runtime_data
+    secspy_object = runtime_data.nvr
+    secspy_data = runtime_data.secspy_data
+    server_info = runtime_data.server_info
     if not secspy_data.data:
         return
 
@@ -93,7 +92,7 @@ class SecuritySpySwitch(SecuritySpyEntity, SwitchEntity):
             secspy_object, secspy_data, server_info, device_id, description.key
         )
         self._description = description
-        self._attr_name = f"{self._device_data['name']} {self._description.name}"
+        self._attr_name = self._description.name
         self._attr_icon = self._description.icon
         self._attr_entity_category = EntityCategory.CONFIG
 

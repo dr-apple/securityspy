@@ -22,7 +22,6 @@ from .const import (
     ATTR_EVENT_SCORE_ANIMAL,
     ATTR_EVENT_SCORE_HUMAN,
     ATTR_EVENT_SCORE_VEHICLE,
-    DOMAIN,
 )
 from .entity import SecuritySpyEntity
 from .models import SecSpyRequiredKeysMixin
@@ -58,10 +57,10 @@ async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
     """SecuritySpy Binary Sensor Platform."""
-    entry_data = hass.data[DOMAIN][entry.entry_id]
-    secspy_object = entry_data["nvr"]
-    secspy_data = entry_data["secspy_data"]
-    server_info = entry_data["server_info"]
+    runtime_data = entry.runtime_data
+    secspy_object = runtime_data.nvr
+    secspy_data = runtime_data.secspy_data
+    server_info = runtime_data.server_info
     if not secspy_data.data:
         return
 
@@ -103,7 +102,7 @@ class SecuritySpyBinarySensor(SecuritySpyEntity, BinarySensorEntity):
             secspy_object, secspy_data, server_info, device_id, description.key
         )
         self._description = description
-        self._attr_name = f"{self._device_data['name']} {self._description.name}"
+        self._attr_name = self._description.name
         self._attr_device_class = self._description.device_class
         self._attr_icon = self._description.icon
 

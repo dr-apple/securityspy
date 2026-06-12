@@ -3,12 +3,11 @@ from __future__ import annotations
 
 import logging
 
-from homeassistant.components.button import ButtonDeviceClass, ButtonEntity
+from homeassistant.components.button import ButtonEntity
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN
 from .entity import SecuritySpyEntity
 
 _LOGGER = logging.getLogger(__name__)
@@ -28,10 +27,10 @@ async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
     """SecuritySpy Button Platform."""
-    entry_data = hass.data[DOMAIN][entry.entry_id]
-    secspy_object = entry_data["nvr"]
-    secspy_data = entry_data["secspy_data"]
-    server_info = entry_data["server_info"]
+    runtime_data = entry.runtime_data
+    secspy_object = runtime_data.nvr
+    secspy_data = runtime_data.secspy_data
+    server_info = runtime_data.server_info
     if not secspy_data.data:
         return
 
@@ -89,10 +88,9 @@ class SecuritySpyButtonEntity(SecuritySpyEntity, ButtonEntity):
         super().__init__(secspy_object, secspy_data, server_info, device_id, preset_id)
         self._preset_id = preset_id
         self._preset_index = preset_index
-        self._attr_name = f"{self._device_data['name']} {preset_id.capitalize()}"
-        self._attr_device_class = ButtonDeviceClass.UPDATE
+        self._attr_name = preset_id.capitalize()
+        self._attr_icon = "mdi:camera-control"
 
-    @callback
     async def async_press(self) -> None:
         """Press the button."""
 

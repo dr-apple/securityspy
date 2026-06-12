@@ -4,6 +4,7 @@ from __future__ import annotations
 import logging
 import voluptuous as vol
 
+from awesomeversion import AwesomeVersion
 from homeassistant import config_entries
 from homeassistant.const import (
     CONF_HOST,
@@ -70,7 +71,7 @@ class SecuritySpyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             errors["base"] = "nvr_error"
             return await self._show_setup_form(errors)
 
-        if server_info["server_version"] < MIN_SECSPY_VERSION:
+        if AwesomeVersion(server_info["server_version"]) < AwesomeVersion(MIN_SECSPY_VERSION):
             _LOGGER.error(
                 "This version of SecuritySpy is too old. Please upgrade to minimum V%s and try again.",
                 MIN_SECSPY_VERSION,

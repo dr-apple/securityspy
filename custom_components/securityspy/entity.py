@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 
 from homeassistant.const import ATTR_ATTRIBUTION
-import homeassistant.helpers.device_registry as dr
+from homeassistant.core import callback
 from homeassistant.helpers.entity import Entity, DeviceInfo
 
 from .const import (
@@ -38,7 +38,6 @@ class SecuritySpyEntity(Entity):
 
         self._device_data = self.secspy_data.data[self._device_id]
         self._device_name = self._device_data["name"]
-        self._mac = f"{self._device_data['ip_address']}_{self._device_id}"
         self._firmware_version = server_info["server_version"]
         self._server_id = server_info["server_id"]
         self._schedule_presets = server_info["schedule_presets"]
@@ -55,7 +54,7 @@ class SecuritySpyEntity(Entity):
                 f"{self._sensor_type}_{self._server_id}_{self._device_id}"
             )
         self._attr_device_info = DeviceInfo(
-            connections={(dr.CONNECTION_NETWORK_MAC, self._mac)},
+            identifiers={(DOMAIN, f"{self._server_id}_{self._device_id}")},
             name=self._device_name,
             manufacturer=DEFAULT_BRAND,
             model=self._model,
@@ -63,6 +62,8 @@ class SecuritySpyEntity(Entity):
             via_device=(DOMAIN, self._server_id),
             configuration_url=f"http://{self._server_ip}:{self._server_port}/camerasettings?cameraNum={self._device_id}",
         )
+        self._attr_has_entity_name = True
+        self._attr_should_poll = False
 
     @property
     def extra_state_attributes(self):
@@ -76,6 +77,13 @@ class SecuritySpyEntity(Entity):
         """When entity is added to hass."""
         self.async_on_remove(
             self.secspy_data.async_subscribe_device_id(
-                self._device_id, self.async_write_ha_state
+                self._device_id, self._handle_device_update
             )
         )
+
+    @callback
+    def _handle_device_update(self) -> None:
+        """Handle pushed updates from SecuritySpy."""
+        self._device_data = self.secspy_data.data[self._device_id]
+        self._attr_available = self.secspy_data.last_update_success
+        self.async_schedule_update_ha_state()

@@ -4,7 +4,8 @@ from __future__ import annotations
 import logging
 
 from aiohttp.client_exceptions import ServerDisconnectedError
-from homeassistant.config_entries import ConfigEntry
+from awesomeversion import AwesomeVersion
+from homeassistant.config_entries import ConfigEntry, ConfigEntryState
 from homeassistant.const import (
     CONF_ID,
     CONF_HOST,
@@ -12,9 +13,10 @@ from homeassistant.const import (
     CONF_USERNAME,
     CONF_PASSWORD,
 )
-from homeassistant.core import HomeAssistant, callback
-from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.core import HomeAssistant, ServiceCall, callback
+from homeassistant.exceptions import ConfigEntryNotReady, ServiceValidationError
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
+from homeassistant.helpers.typing import ConfigType
 import homeassistant.helpers.device_registry as dr
 from pysecspy.errors import InvalidCredentials, RequestError
 from pysecspy.secspy_server import SecSpyServer
@@ -22,6 +24,7 @@ from pysecspy.const import SERVER_ID
 
 from .const import (
     CONF_DISABLE_RTSP,
+    CONF_CONFIG_ENTRY_ID,
     CONF_MIN_SCORE,
     CONFIG_OPTIONS,
     DEFAULT_BRAND,
@@ -31,10 +34,28 @@ from .const import (
     SERVICE_ENABLE_SCHEDULE_PRESET,
     ENABLE_SCHEDULE_PRESET_SCHEMA,
     MIN_SECSPY_VERSION,
+    ATTR_PRESET_ID,
 )
-from .data import SecuritySpyData
+from .data import SecuritySpyData, SecuritySpyRuntimeData
 
 _LOGGER = logging.getLogger(__name__)
+
+
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+    """Set up SecuritySpy services."""
+
+    async def async_enable_schedule_preset(call: ServiceCall) -> None:
+        """Enable a SecuritySpy schedule preset."""
+        await async_handle_enable_schedule_preset(hass, call)
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_ENABLE_SCHEDULE_PRESET,
+        async_enable_schedule_preset,
+        schema=ENABLE_SCHEDULE_PRESET_SCHEMA,
+    )
+
+    return True
 
 
 @callback
@@ -76,7 +97,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     except (RequestError, ServerDisconnectedError) as notreadyerror:
         raise ConfigEntryNotReady from notreadyerror
 
-    if server_info["server_version"] < MIN_SECSPY_VERSION:
+    if AwesomeVersion(server_info["server_version"]) < AwesomeVersion(MIN_SECSPY_VERSION):
         _LOGGER.error(
             "This version of SecuritySpy is too old. Please upgrade to minimum V%s and try again.",
             MIN_SECSPY_VERSION,
@@ -90,33 +111,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if not secspy_data.last_update_success:
         raise ConfigEntryNotReady
 
-    update_listener = entry.add_update_listener(_async_options_updated)
+    entry.async_on_unload(entry.add_update_listener(_async_options_updated))
 
-    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = securityspyserver
-    hass.data[DOMAIN][entry.entry_id] = {
-        "secspy_data": secspy_data,
-        "nvr": securityspyserver,
-        "server_info": server_info,
-        "update_listener": update_listener,
-        "disable_stream": entry.options.get(CONF_DISABLE_RTSP, False),
-    }
+    entry.runtime_data = SecuritySpyRuntimeData(
+        secspy_data=secspy_data,
+        nvr=securityspyserver,
+        server_info=server_info,
+        disable_stream=entry.options.get(CONF_DISABLE_RTSP, False),
+    )
+    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = entry.runtime_data
 
     await _async_get_or_create_nvr_device_in_registry(hass, entry, server_info)
     await hass.config_entries.async_forward_entry_setups(entry, SECURITYSPY_PLATFORMS)
-
-    # hass.config_entries.async_setup_platforms(entry, SECURITYSPY_PLATFORMS)
-
-    async def async_enable_schedule_preset(service_entries):
-        """Call Enable Schedule Preset Handler."""
-        await async_handle_enable_schedule_preset(hass, entry, service_entries)
-
-    _LOGGER.debug("Creating Service: Enable Schedule Preset")
-    hass.services.async_register(
-        DOMAIN,
-        SERVICE_ENABLE_SCHEDULE_PRESET,
-        async_enable_schedule_preset,
-        schema=ENABLE_SCHEDULE_PRESET_SCHEMA,
-    )
 
     return True
 
@@ -127,24 +133,44 @@ async def _async_get_or_create_nvr_device_in_registry(
     device_registry = dr.async_get(hass)
     device_registry.async_get_or_create(
         config_entry_id=entry.entry_id,
-        connections={(dr.CONNECTION_NETWORK_MAC, nvr["server_id"])},
         identifiers={(DOMAIN, nvr["server_id"])},
         manufacturer=DEFAULT_BRAND,
         name=entry.data[CONF_ID],
-        model="Max OSX Computer",
+        model="macOS Computer",
         sw_version=nvr["server_version"],
     )
 
 
-async def async_handle_enable_schedule_preset(hass, entry, service_entries):
+@callback
+def _async_loaded_runtime_data(
+    hass: HomeAssistant, entry_id: str | None = None
+) -> list[SecuritySpyRuntimeData]:
+    """Return runtime data for loaded SecuritySpy entries."""
+    runtime_entries: list[SecuritySpyRuntimeData] = []
+    for entry in hass.config_entries.async_entries(DOMAIN):
+        if entry_id is not None and entry.entry_id != entry_id:
+            continue
+        if entry.state is ConfigEntryState.LOADED:
+            runtime_entries.append(entry.runtime_data)
+    return runtime_entries
+
+
+async def async_handle_enable_schedule_preset(hass: HomeAssistant, call: ServiceCall):
     """Enable Schedule Preset."""
 
-    _LOGGER.debug("Setting Schedule Preset ID: %s", service_entries.data["preset_id"])
-    preset_id = service_entries.data["preset_id"]
-    entry_data = hass.data[DOMAIN][entry.entry_id]
-    secspy = entry_data["nvr"]
+    preset_id = call.data[ATTR_PRESET_ID]
+    entry_id = call.data.get(CONF_CONFIG_ENTRY_ID)
+    runtime_entries = _async_loaded_runtime_data(hass, entry_id)
 
-    await secspy.enable_schedule_preset(preset_id)
+    if not runtime_entries:
+        raise ServiceValidationError("No matching loaded SecuritySpy config entry")
+    if len(runtime_entries) > 1:
+        raise ServiceValidationError(
+            "Schedule preset service requires exactly one loaded SecuritySpy entry"
+        )
+
+    _LOGGER.debug("Setting Schedule Preset ID: %s", preset_id)
+    await runtime_entries[0].nvr.enable_schedule_preset(preset_id)
 
 
 async def _async_options_updated(hass: HomeAssistant, entry: ConfigEntry):
@@ -159,10 +185,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
 
     if unload_ok:
-        hass.services.async_remove(DOMAIN, SERVICE_ENABLE_SCHEDULE_PRESET)
-        entry_data = hass.data[DOMAIN][entry.entry_id]
-        await entry_data["secspy_data"].async_stop()
-        entry_data["update_listener"]()
+        await entry.runtime_data.secspy_data.async_stop()
         hass.data[DOMAIN].pop(entry.entry_id)
 
     return unload_ok

@@ -1,13 +1,25 @@
 """Base class for securityspy data."""
 from __future__ import annotations
 
+from dataclasses import dataclass
 import logging
 
 from homeassistant.core import callback
 
 from pysecspy.errors import RequestError
+from pysecspy.secspy_server import SecSpyServer
 
 _LOGGER = logging.getLogger(__name__)
+
+
+@dataclass(slots=True)
+class SecuritySpyRuntimeData:
+    """Runtime data for a SecuritySpy config entry."""
+
+    secspy_data: SecuritySpyData
+    nvr: SecSpyServer
+    server_info: dict
+    disable_stream: bool
 
 
 class SecuritySpyData:
@@ -82,5 +94,5 @@ class SecuritySpyData:
         if not self._subscriptions.get(device_id):
             return
 
-        for update_callback in self._subscriptions[device_id]:
+        for update_callback in tuple(self._subscriptions[device_id]):
             update_callback()

@@ -2,7 +2,6 @@
 import voluptuous as vol
 from homeassistant.helpers import config_validation as cv
 from homeassistant.const import (
-    ATTR_ENTITY_ID,
     CONF_FILENAME,
 )
 from pysecspy.const import (
@@ -24,6 +23,7 @@ CONF_MODE = "mode"
 CONF_ENABLED = "enabled"
 CONF_DISABLE_RTSP = "disable_rtsp"
 CONF_MIN_SCORE = "min_event_score"
+CONF_CONFIG_ENTRY_ID = "config_entry_id"
 CONFIG_OPTIONS = [
     CONF_DISABLE_RTSP,
     CONF_MIN_SCORE,
@@ -61,13 +61,19 @@ VALID_MODES = [
 SERVICE_DOWNLOAD_LATEST_MOTION_RECORDING = "download_latest_motion_recording"
 SERVICE_ENABLE_SCHEDULE_PRESET = "enable_schedule_preset"
 SERVICE_SET_ARM_MODE = "set_arm_mode"
-DOWNLOAD_LATEST_MOTION_RECORDING_SCHEMA = { vol.Required(ATTR_ENTITY_ID): cv.entity_ids, vol.Required(CONF_FILENAME): cv.string,}
+DOWNLOAD_LATEST_MOTION_RECORDING_SCHEMA = {
+    vol.Required(CONF_FILENAME): cv.string,
+}
 ENABLE_SCHEDULE_PRESET_SCHEMA = vol.Schema(
     {
         vol.Required(ATTR_PRESET_ID): cv.string,
+        vol.Optional(CONF_CONFIG_ENTRY_ID): cv.string,
     }
 )
-SET_ARM_MODE_SCHEMA = { vol.Required(ATTR_ENTITY_ID): cv.entity_ids, vol.Required(CONF_MODE): vol.In(VALID_MODES), vol.Required(CONF_ENABLED): cv.boolean,}
+SET_ARM_MODE_SCHEMA = {
+    vol.Required(CONF_MODE): vol.In(VALID_MODES),
+    vol.Required(CONF_ENABLED): cv.boolean,
+}
 SECURITYSPY_PLATFORMS = [
     "camera",
     "binary_sensor",
@@ -75,4 +81,3 @@ SECURITYSPY_PLATFORMS = [
     "switch",
     "button",
 ]
-

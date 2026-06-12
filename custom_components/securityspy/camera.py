@@ -11,7 +11,6 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
-    DOMAIN,
     DEFAULT_BRAND,
     DOWNLOAD_LATEST_MOTION_RECORDING_SCHEMA,
     ATTR_PRESET_ID,
@@ -34,11 +33,11 @@ async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
     """Discover cameras on a SecuritySpy NVR."""
-    entry_data = hass.data[DOMAIN][entry.entry_id]
-    secspy_object = entry_data["nvr"]
-    secspy_data = entry_data["secspy_data"]
-    server_info = entry_data["server_info"]
-    disable_stream = entry_data["disable_stream"]
+    runtime_data = entry.runtime_data
+    secspy_object = runtime_data.nvr
+    secspy_data = runtime_data.secspy_data
+    server_info = runtime_data.server_info
+    disable_stream = runtime_data.disable_stream
 
     if not secspy_data.data:
         return
@@ -79,7 +78,7 @@ class SecuritySpyCamera(SecuritySpyEntity, Camera):
     ):
         """Initialize an SecuritySpy camera."""
         super().__init__(secspy_object, secspy_data, server_info, camera_id, None)
-        self._name = self._device_data["name"]
+        self._attr_name = None
         self._stream_source = (
             None if disable_stream else self._device_data["live_stream"]
         )
@@ -89,11 +88,6 @@ class SecuritySpyCamera(SecuritySpyEntity, Camera):
         else:
             self._attr_supported_features = CameraEntityFeature(0)
         self.stream_options[FFMPEG_OPTION_MAP[CONF_RTSP_TRANSPORT]] = "tcp"
-
-    @property
-    def name(self):
-        """Return the name of this camera."""
-        return self._name
 
     @property
     def motion_detection_enabled(self):
@@ -148,7 +142,7 @@ class SecuritySpyCamera(SecuritySpyEntity, Camera):
 
         video = await self.secspy.get_latest_motion_recording(self._device_id)
         if video is None:
-            _LOGGER.error("Last recording not found for Camera %s", self.name)
+            _LOGGER.error("Last recording not found for Camera %s", self._device_name)
             return
 
         _LOGGER.debug("Saving recording in %s", filename)
@@ -163,7 +157,7 @@ class SecuritySpyCamera(SecuritySpyEntity, Camera):
             self._device_id, RECORDING_TYPE_MOTION, True
         ):
             return
-        _LOGGER.debug("Motion Detection Enabled for Camera: %s", self._name)
+        _LOGGER.debug("Motion Detection Enabled for Camera: %s", self._device_name)
 
     async def async_disable_motion_detection(self):
         """Disable motion detection in camera."""
@@ -171,7 +165,7 @@ class SecuritySpyCamera(SecuritySpyEntity, Camera):
             self._device_id, RECORDING_TYPE_MOTION, False
         ):
             return
-        _LOGGER.debug("Motion Detection Disabled for Camera: %s", self._name)
+        _LOGGER.debug("Motion Detection Disabled for Camera: %s", self._device_name)
 
     async def async_camera_image(
         self, width: int | None = None, height: int | None = None
@@ -194,4 +188,3 @@ def _write_file(to_file, content):
     with open(to_file, "wb") as _file:
         _file.write(content)
         _LOGGER.debug("File written to %s", to_file)
-

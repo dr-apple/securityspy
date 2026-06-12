@@ -1,16 +1,11 @@
 set_arm_mode:
   name: Set Arm Mode
   description: "Set arming mode for the camera"
+  target:
+    entity:
+      integration: securityspy
+      domain: camera
   fields:
-    entity_id:
-      name: Entity ID
-      description: string (required) camera to set recording mode mode for
-      example: "camera.outdoor"
-      required: true
-      selector:
-        entity:
-          integration: securityspy
-          domain: camera
     mode:
       name: Armed Mode
       description: "(Required) Valid options are: continuous = Enable/Disable Continuous Recording, on_motion = Enable/Disable motion recording, action = Enable/Disable Actions."
@@ -40,19 +35,20 @@ enable_schedule_preset:
       example: "1214161810"
       selector:
         text:
+    config_entry_id:
+      name: Config entry ID
+      description: "Optional SecuritySpy config entry ID. Required when more than one SecuritySpy server is loaded."
+      required: false
+      selector:
+        text:
 download_latest_motion_recording:
   name: Download latest motion recording
   description: "Download the latest motion recording video to Home Assistant"
+  target:
+    entity:
+      integration: securityspy
+      domain: camera
   fields:
-    entity_id:
-      name: Entity ID
-      description: string (required) camera download recording for
-      example: "camera.outdoor"
-      required: true
-      selector:
-        entity:
-          integration: securityspy
-          domain: camera
     filename:
       name: Filename
       description: "Enter directory and filename where to store the video in Home Assistant"
@@ -60,23 +56,3 @@ download_latest_motion_recording:
       example: "/media/motion_recording.mv4"
       selector:
         text:
-enable_disable_camera:
-  name: Enable or Disable a Camera
-  description: "Service to enable or disable a camera in SecuritySpy"
-  fields:
-    entity_id:
-      name: Entity ID
-      description: "string (required) camera to enable or disable"
-      required: true
-      example: "camera.outdoor"
-      selector:
-        entity:
-          integration: securityspy
-          domain: camera
-    enabled:
-      name: Enabled
-      description: True to enable the Camera, false to disable
-      required: true
-      example: "true"
-      selector:
-        boolean:

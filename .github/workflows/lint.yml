@@ -8,11 +8,7 @@ on:
       - "**/CHANGELOG.md"
       - "**/CONTRIBUTING.md"
       - "**/requirements.txt"
-    branches:
-      - "main"
   pull_request:
-    branches:
-      - "main"
 
 jobs:
   ruff:
@@ -25,7 +21,7 @@ jobs:
         - name: "Set up Python"
           uses: actions/setup-python@v5.1.0
           with:
-            python-version: "3.11"
+            python-version: "3.14"
             cache: "pip"
 
         - name: "Install requirements"

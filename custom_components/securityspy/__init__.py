@@ -14,7 +14,11 @@ from homeassistant.const import (
     CONF_PASSWORD,
 )
 from homeassistant.core import HomeAssistant, ServiceCall, callback
-from homeassistant.exceptions import ConfigEntryNotReady, ServiceValidationError
+from homeassistant.exceptions import (
+    ConfigEntryAuthFailed,
+    ConfigEntryNotReady,
+    ServiceValidationError,
+)
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
 from homeassistant.helpers.typing import ConfigType
 import homeassistant.helpers.device_registry as dr
@@ -92,8 +96,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     try:
         server_info = await securityspyserver.get_server_information()
     except InvalidCredentials as unauthex:
-        _LOGGER.error("Could not authorize against SecuritySpy. Error: %s.", unauthex)
-        return False
+        raise ConfigEntryAuthFailed from unauthex
     except (RequestError, ServerDisconnectedError) as notreadyerror:
         raise ConfigEntryNotReady from notreadyerror
 
@@ -110,8 +113,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await secspy_data.async_setup()
     if not secspy_data.last_update_success:
         raise ConfigEntryNotReady
-
-    entry.async_on_unload(entry.add_update_listener(_async_options_updated))
 
     entry.runtime_data = SecuritySpyRuntimeData(
         secspy_data=secspy_data,
@@ -171,11 +172,6 @@ async def async_handle_enable_schedule_preset(hass: HomeAssistant, call: Service
 
     _LOGGER.debug("Setting Schedule Preset ID: %s", preset_id)
     await runtime_entries[0].nvr.enable_schedule_preset(preset_id)
-
-
-async def _async_options_updated(hass: HomeAssistant, entry: ConfigEntry):
-    """Update options."""
-    await hass.config_entries.async_reload(entry.entry_id)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

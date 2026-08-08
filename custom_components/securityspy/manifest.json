@@ -2,15 +2,17 @@
     "domain": "securityspy",
     "name": "SecuritySpy for Home Assistant",
     "codeowners": [
-        "@briis"
+        "@briis",
+        "@dr-apple"
     ],
     "config_flow": true,
     "dependencies": [],
-    "documentation": "https://github.com/briis/securityspy",
+    "documentation": "https://github.com/dr-apple/securityspy",
+    "integration_type": "hub",
     "iot_class": "local_push",
-    "issue_tracker": "https://github.com/briis/securityspy/issues",
+    "issue_tracker": "https://github.com/dr-apple/securityspy/issues",
     "requirements": [
         "pysecspy==1.3.5"
     ],
-    "version": "1.2.0"
+    "version": "1.2.1"
 }

@@ -11,11 +11,7 @@ on:
       - "**/CHANGELOG.md"
       - "**/CONTRIBUTING.md"
       - "**/requirements.txt"
-    branches:
-      - "main"
   pull_request:
-    branches:
-      - "main"
 
 jobs:
   hassfest: # https://developers.home-assistant.io/blog/2020/04/16/hassfest

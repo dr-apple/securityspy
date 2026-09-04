@@ -6,6 +6,7 @@ import logging
 from homeassistant.const import ATTR_ATTRIBUTION
 from homeassistant.core import callback
 from homeassistant.helpers.entity import Entity, DeviceInfo
+import homeassistant.helpers.device_registry as dr
 
 from .const import (
     ATTR_BRAND,
@@ -53,17 +54,36 @@ class SecuritySpyEntity(Entity):
             self._attr_unique_id = (
                 f"{self._sensor_type}_{self._server_id}_{self._device_id}"
             )
-        self._attr_device_info = DeviceInfo(
+        self._attr_has_entity_name = True
+        self._attr_should_poll = False
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Return device information, resolving the NVR's registry ID for via_device_id.
+
+        via_device (identifier tuple) is deprecated by HA in favor of via_device_id
+        (the parent device's registry ID); the NVR device is already registered by
+        __init__.py before entity platforms are set up, so it's always resolvable here.
+        async_get_device_by_identifier (not the also-deprecated async_get_device) is
+        used since identifiers are only guaranteed unique within a config entry.
+        """
+        via_device_id = None
+        config_entry = getattr(self.platform, "config_entry", None)
+        if config_entry is not None:
+            via_device_entry = dr.async_get(self.hass).async_get_device_by_identifier(
+                (DOMAIN, self._server_id), config_entry.entry_id
+            )
+            if via_device_entry is not None:
+                via_device_id = via_device_entry.id
+        return DeviceInfo(
             identifiers={(DOMAIN, f"{self._server_id}_{self._device_id}")},
             name=self._device_name,
             manufacturer=DEFAULT_BRAND,
             model=self._model,
             sw_version=self._firmware_version,
-            via_device=(DOMAIN, self._server_id),
+            via_device_id=via_device_id,
             configuration_url=f"http://{self._server_ip}:{self._server_port}/camerasettings?cameraNum={self._device_id}",
         )
-        self._attr_has_entity_name = True
-        self._attr_should_poll = False
 
     @property
     def extra_state_attributes(self):

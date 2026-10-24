@@ -4,7 +4,7 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.const import (
     CONF_FILENAME,
 )
-from pysecspy.const import (
+from .pysecspy.const import (
     RECORDING_TYPE_ACTION,
     RECORDING_TYPE_MOTION,
     RECORDING_TYPE_CONTINUOUS,

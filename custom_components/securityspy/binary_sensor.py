@@ -42,6 +42,20 @@ BINARY_SENSORS: tuple[SecSpyBinaryEntityDescription, ...] = (
         trigger_field="event_on",
     ),
     SecSpyBinaryEntityDescription(
+        key="capture_trigger",
+        name="Capture Trigger",
+        device_class=BinarySensorDeviceClass.MOTION,
+        icon="mdi:video-check-outline",
+        trigger_field="capture_trigger",
+    ),
+    SecSpyBinaryEntityDescription(
+        key="action_trigger",
+        name="Action Trigger",
+        device_class=BinarySensorDeviceClass.MOTION,
+        icon="mdi:flash-outline",
+        trigger_field="action_trigger",
+    ),
+    SecSpyBinaryEntityDescription(
         key="online",
         icon="mdi:access-point-network",
         name="Online",
@@ -109,11 +123,18 @@ class SecuritySpyBinarySensor(SecuritySpyEntity, BinarySensorEntity):
     @property
     def is_on(self):
         """Return true if the binary sensor is on."""
-        return self._device_data[self._description.trigger_field]
+        return bool(self._device_data.get(self._description.trigger_field, False))
 
     @property
     def extra_state_attributes(self):
         """Return the device state attributes."""
+        if self._description.key in ("capture_trigger", "action_trigger"):
+            return {
+                **super().extra_state_attributes,
+                "trigger_objects": self._device_data.get(
+                    f"{self._description.trigger_field}_objects", []
+                ),
+            }
         if self._description.device_class == BinarySensorDeviceClass.MOTION:
             return {
                 **super().extra_state_attributes,

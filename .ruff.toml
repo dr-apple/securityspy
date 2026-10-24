@@ -2,6 +2,9 @@
 
 target-version = "py313"
 
+# Vendored copy of pysecspy (MIT, Bjarne Riis) with local changes
+extend-exclude = ["custom_components/securityspy/pysecspy"]
+
 [lint]
 select = [
     "B007", # Loop control variable {name} not used within loop body

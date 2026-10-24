@@ -19,6 +19,7 @@ from .const import (
     ATTR_EVENT_SCORE_HUMAN,
     ATTR_EVENT_SCORE_VEHICLE,
     DEVICE_CLASS_DETECTION,
+    DEVICE_CLASS_TRIGGER_OBJECT,
     RECORDING_TYPE_ACTION,
     RECORDING_TYPE_CONTINUOUS,
     RECORDING_TYPE_MOTION,
@@ -55,6 +56,12 @@ SENSOR_ENTITIES: tuple[SecuritySpyEntityDescription, ...] = (
         name="Detected Object",
         icon="mdi:selection-search",
         device_type=DEVICE_CLASS_DETECTION,
+    ),
+    SecuritySpyEntityDescription(
+        key="trigger_object",
+        name="Trigger Object",
+        icon="mdi:target-account",
+        device_type=DEVICE_CLASS_TRIGGER_OBJECT,
     ),
 )
 _LOGGER = logging.getLogger(__name__)
@@ -124,6 +131,8 @@ class SecuritySpySensor(SecuritySpyEntity, SensorEntity):
             return self._device_data["recording_mode_m"]
         if self._description.device_type == DEVICE_CLASS_DETECTION:
             return self._device_data["event_object"]
+        if self._description.device_type == DEVICE_CLASS_TRIGGER_OBJECT:
+            return self._device_data.get("trigger_object", "None")
         return None
 
     @property
@@ -135,6 +144,11 @@ class SecuritySpySensor(SecuritySpyEntity, SensorEntity):
                 ATTR_EVENT_SCORE_ANIMAL: self._device_data[ATTR_EVENT_SCORE_ANIMAL],
                 ATTR_EVENT_SCORE_HUMAN: self._device_data[ATTR_EVENT_SCORE_HUMAN],
                 ATTR_EVENT_SCORE_VEHICLE: self._device_data[ATTR_EVENT_SCORE_VEHICLE],
+            }
+        if self._description.device_type == DEVICE_CLASS_TRIGGER_OBJECT:
+            return {
+                **super().extra_state_attributes,
+                "objects": self._device_data.get("trigger_object_list", []),
             }
         return {
             **super().extra_state_attributes,

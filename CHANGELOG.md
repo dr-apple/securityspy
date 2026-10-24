@@ -1,5 +1,11 @@
 # Changelog for SecuritySpy Home Assistant Integration
 
+## Version 1.3.1
+
+### Changes
+
+- Neuer Sensor je Kamera: **Trigger Object**. Zeigt das wichtigste Objekt (Human, Animal, Vehicle oder None), das die Trigger-Filter von SecuritySpy durchgelassen haben: zuerst vom Action Trigger, sonst vom Capture Trigger. Der Wert bleibt, solange der Trigger aktiv ist, und springt nicht wie `Detected Object` mit jeder Klassifizierung. Attribut `objects` mit allen Objekten.
+
 ## Version 1.3.0
 
 ### Changes

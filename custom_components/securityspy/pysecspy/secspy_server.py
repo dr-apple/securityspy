@@ -692,9 +692,17 @@ class SecSpyServer:
         """Publish the capture / action trigger flags of a camera."""
         if camera_id not in self._processed_data:
             return
+        if st["action"]:
+            objects = st["action_objects"]
+        elif st["capture"]:
+            objects = st["capture_objects"]
+        else:
+            objects = []
         self.fire_event(
             camera_id,
             {
+                "trigger_object": _top_object(objects),
+                "trigger_object_list": list(objects),
                 "capture_trigger": st["capture"],
                 "capture_trigger_objects": list(st["capture_objects"]),
                 "action_trigger": st["action"],
@@ -757,3 +765,11 @@ def _object_from_trigger(objects):
         if name in objects:
             return code
     return None
+
+
+def _top_object(objects):
+    """Return the most important object name of a trigger (Human, Animal, Vehicle) or None."""
+    for name in ("Human", "Animal", "Vehicle"):
+        if name in objects:
+            return name
+    return "None"

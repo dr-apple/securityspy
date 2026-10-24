@@ -1,5 +1,14 @@
 # Changelog for SecuritySpy Home Assistant Integration
 
+## Version 1.3.0
+
+### Changes
+
+- Neue Binary Sensors je Kamera: **Capture Trigger** (SecuritySpy `TRIGGER_M`, Aufnahme-Trigger nach den Trigger-Filtern) und **Action Trigger** (`TRIGGER_A`, Actions-Trigger). Beide gehen bei `MOTION_END` wieder aus und tragen das Attribut `trigger_objects` (Human/Vehicle/Animal).
+- Objekt-Erkennung (`Detected Object`): Es zaehlt nur noch ein Wert ab dem eingestellten Mindest-Score (Option `min_event_score`, Standard 50), der hoechste gewinnt. Vorher wurde immer der hoechste Wert ohne Schwelle genommen, dadurch wechselte der Sensor staendig zwischen Human, Vehicle und Animal.
+- Erkennungswerte und Objekt werden pro Kamera gehalten (vorher global fuer alle Kameras).
+- `pysecspy` (MIT, Bjarne Riis) ist jetzt direkt in der Integration enthalten (`custom_components/securityspy/pysecspy`), die PyPI-Abhaengigkeit entfaellt (nur noch `xmltodict`).
+
 ## Version 1.1.9
 
 Release date: `2024-09-23`

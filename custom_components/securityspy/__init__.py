@@ -23,9 +23,9 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
 from homeassistant.helpers.typing import ConfigType
 import homeassistant.helpers.device_registry as dr
-from pysecspy.errors import InvalidCredentials, RequestError
-from pysecspy.secspy_server import SecSpyServer
-from pysecspy.const import SERVER_ID
+from .pysecspy.errors import InvalidCredentials, RequestError
+from .pysecspy.secspy_server import SecSpyServer
+from .pysecspy.const import SERVER_ID
 
 from .const import (
     CONF_DISABLE_RTSP,
